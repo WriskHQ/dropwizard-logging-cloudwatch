@@ -13,8 +13,6 @@ ext {
 
 group = 'co.wrisk.dropwizard'
 
-version = "1.0.0-SNAPSHOT"
-
 repositories {
     mavenCentral()
 
@@ -29,8 +27,6 @@ repositories {
             secretKey "${AWS_SECRET_ACCESS_KEY}"
         }
     }
-
-
 }
 
 
