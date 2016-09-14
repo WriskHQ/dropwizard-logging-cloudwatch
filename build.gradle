@@ -56,13 +56,5 @@ task resolveDependencies {
         }
     }
 }
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourceJar
-        }
-    }
-}
 
 

@@ -1,0 +1,9 @@
+dependencies:
+  override:
+    - ./gradlew resolveDependencies --console=plain
+
+test:
+  override:
+    - ./gradlew build --console=plain
+
+
