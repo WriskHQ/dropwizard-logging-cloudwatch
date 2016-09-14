@@ -15,4 +15,4 @@ deployment:
   prod:
     branch: master
     commands:
-      - ./gradlew  publish -x check --console=plain
+      - ./gradlew  uploadArchives -x check --console=plain

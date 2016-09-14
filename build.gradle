@@ -1,6 +1,7 @@
 plugins {
     id 'java'
-    id 'maven-publish'
+    id 'maven'
+    id 'signing'
     id 'com.github.ben-manes.versions' version '0.13.0'
 }
 
@@ -11,12 +12,14 @@ ext {
 
 group = 'co.wrisk.dropwizard'
 
-def buildNumber = "${System.env.CI_BUILD_NUMBER ? System.env.CI_BUILD_NUMBER : 'manual'}"
-def semanticVersion = "1.0.0"
-version = "$semanticVersion.$buildNumber"
+version = "1.0.0-SNAPSHOT"
 
 repositories {
-    jcenter()
+    mavenCentral()
+
+    maven {
+        url "https://oss.sonatype.org/content/repositories/snapshots"
+    }
 
     maven {
         url "s3://repo.wrisk.co/release"
@@ -25,7 +28,10 @@ repositories {
             secretKey "${AWS_SECRET_ACCESS_KEY}"
         }
     }
+
+
 }
+
 
 compileJava {
     sourceCompatibility = 1.8
@@ -41,18 +47,26 @@ compileTestJava {
 dependencies {
     compile "io.dropwizard:dropwizard-core:$dropwizardVersion"
     compile "io.dropwizard:dropwizard-logging:$dropwizardVersion"
-    compile "co.wrisk.logback:logback-ext-cloudwatch-appender:1.0.0.7"
+    compile "co.wrisk.logback:logback-ext-cloudwatch-appender:1.0.1-alpha.1"
 
     testCompile "junit:junit:${junitVersion}"
 }
 
-task sourceJar(type: Jar, dependsOn: classes) {
+task sourcesJar(type: Jar, dependsOn: classes) {
     classifier = 'sources'
     from sourceSets.main.allSource
 }
-
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
 artifacts {
-    archives sourceJar
+    archives javadocJar, sourcesJar
+}
+
+signing {
+    required { !version.contains("SNAPSHOT") }
+    sign configurations.archives
 }
 
 task resolveDependencies {
@@ -68,25 +82,53 @@ task resolveDependencies {
     }
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifact sourceJar
-        }
-    }
-}
-publishing {
+uploadArchives {
+
     repositories {
-        maven {
-            url "s3://repo.wrisk.co/release"
-            credentials(AwsCredentials) {
-                accessKey "${AWS_ACCESS_KEY_ID}"
-                secretKey "${AWS_SECRET_ACCESS_KEY}"
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                name 'Dropwizard component to enable cloudwatch log appender'
+                packaging 'jar'
+                // optionally artifactId can be defined here
+                description 'Dropwizard component to enable cloudwatch log appender'
+                url 'https://github.com/WriskHQ/dropwizard-logging-cloudwatch'
+
+                scm {
+                    connection 'scm:git:git@github.com:WriskHQ/dropwizard-logging-cloudwatch.git'
+                    developerConnection 'scm:git:git@github.com:WriskHQ/dropwizard-logging-cloudwatch.git'
+                    url 'https://github.com/WriskHQ/dropwizard-logging-cloudwatch'
+                }
+
+                licenses {
+                    license {
+                        name 'The MIT License (MIT)'
+                        url 'https://raw.githubusercontent.com/WriskHQ/dropwizard-logging-cloudwatch/master/LICENSE'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'aharin'
+                        name 'Alex Harin'
+                        email 'alex@wrisk.co'
+                    }
+                }
             }
         }
     }
 }
+
+
 
 
 
