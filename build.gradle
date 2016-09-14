@@ -16,6 +16,14 @@ version = "$semanticVersion.$buildNumber"
 
 repositories {
     jcenter()
+
+    maven {
+        url "s3://repo.wrisk.co/release"
+        credentials(AwsCredentials) {
+            accessKey "${AWS_ACCESS_KEY_ID}"
+            secretKey "${AWS_SECRET_ACCESS_KEY}"
+        }
+    }
 }
 
 compileJava {
