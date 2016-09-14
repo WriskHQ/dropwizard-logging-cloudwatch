@@ -1,0 +1,68 @@
+plugins {
+    id 'java'
+    id 'com.github.ben-manes.versions' version '0.13.0'
+}
+
+ext {
+    dropwizardVersion = '1.0.0'
+    junitVersion = '4.12'
+}
+
+group = 'co.wrisk.dropwizard'
+
+version = "1.0.0.2"
+
+repositories {
+    jcenter()
+}
+
+compileJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    options.deprecation = true
+}
+
+compileTestJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    options.deprecation = true
+}
+dependencies {
+    compile "io.dropwizard:dropwizard-core:$dropwizardVersion"
+    compile "io.dropwizard:dropwizard-logging:$dropwizardVersion"
+    compile "co.wrisk:logback-ext-cloudwatch-appender:1.0.0.0"
+
+    testCompile "junit:junit:${junitVersion}"
+}
+
+task sourceJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives sourceJar
+}
+
+task resolveDependencies {
+    doLast {
+        project.rootProject.allprojects.each { subProject ->
+            subProject.buildscript.configurations.each { configuration ->
+                configuration.resolve()
+            }
+            subProject.configurations.each { configuration ->
+                configuration.resolve()
+            }
+        }
+    }
+}
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourceJar
+        }
+    }
+}
+
+
