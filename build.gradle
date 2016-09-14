@@ -10,7 +10,9 @@ ext {
 
 group = 'co.wrisk.dropwizard'
 
-version = "1.0.0.2"
+def buildNumber = "${System.env.CI_BUILD_NUMBER ? System.env.CI_BUILD_NUMBER : 'manual'}"
+def semanticVersion = "1.0.0"
+version = "$semanticVersion.$buildNumber"
 
 repositories {
     jcenter()
@@ -30,7 +32,7 @@ compileTestJava {
 dependencies {
     compile "io.dropwizard:dropwizard-core:$dropwizardVersion"
     compile "io.dropwizard:dropwizard-logging:$dropwizardVersion"
-    compile "co.wrisk:logback-ext-cloudwatch-appender:1.0.0.0"
+    compile "co.wrisk.logback:logback-ext-cloudwatch-appender:1.0.0.0"
 
     testCompile "junit:junit:${junitVersion}"
 }
@@ -56,5 +58,26 @@ task resolveDependencies {
         }
     }
 }
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourceJar
+        }
+    }
+}
+publishing {
+    repositories {
+        maven {
+            url "s3://repo.wrisk.co/release"
+            credentials(AwsCredentials) {
+                accessKey "${AWS_ACCESS_KEY_ID}"
+                secretKey "${AWS_SECRET_ACCESS_KEY}"
+            }
+        }
+    }
+}
+
 
 
