@@ -44,7 +44,7 @@ compileTestJava {
 dependencies {
     compile "io.dropwizard:dropwizard-core:$dropwizardVersion"
     compile "io.dropwizard:dropwizard-logging:$dropwizardVersion"
-    compile "co.wrisk.logback:logback-ext-cloudwatch-appender:1.0.1-alpha.1"
+    compile "co.wrisk.logback:logback-ext-cloudwatch-appender:1.0.3"
 
     testCompile "junit:junit:${junitVersion}"
 }
