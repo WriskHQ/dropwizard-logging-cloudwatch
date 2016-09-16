@@ -1,19 +1,22 @@
 package co.wrisk.dropwizard.cloudwatch.appender;
 
+import ch.qos.logback.access.spi.IAccessEvent;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.Appender;
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
+import ch.qos.logback.core.spi.DeferredProcessingAware;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.dropwizard.logging.AbstractAppenderFactory;
 import io.dropwizard.logging.async.AsyncAppenderFactory;
 import io.dropwizard.logging.filter.LevelFilterFactory;
 import io.dropwizard.logging.layout.LayoutFactory;
-import org.eluder.logback.ext.cloudwatch.appender.CloudWatchAppender;
+import org.eluder.logback.ext.cloudwatch.appender.AbstractCloudWatchAppender;
+import org.eluder.logback.ext.core.CommonEventAttributes;
 
 @JsonTypeName("awslogs")
-public class CloudWatchAppenderFactory extends AbstractAppenderFactory<ILoggingEvent> {
+public class CloudWatchAppenderFactory<E extends DeferredProcessingAware> extends AbstractAppenderFactory<E> {
 
     private static final int DEFAULT_MAX_BATCH_SIZE = 512;
     private static final int DEFAULT_MAX_BATCH_TIME = 1000;
@@ -104,8 +107,16 @@ public class CloudWatchAppenderFactory extends AbstractAppenderFactory<ILoggingE
     }
 
     @Override
-    public Appender<ILoggingEvent> build(LoggerContext context, String applicationName, LayoutFactory<ILoggingEvent> layoutFactory, LevelFilterFactory<ILoggingEvent> levelFilterFactory, AsyncAppenderFactory<ILoggingEvent> asyncAppenderFactory) {
-        final CloudWatchAppender appender = new CloudWatchAppender();
+    public Appender<E> build(LoggerContext context, String applicationName, LayoutFactory<E> layoutFactory, LevelFilterFactory<E> levelFilterFactory, AsyncAppenderFactory<E> asyncAppenderFactory) {
+        final AbstractCloudWatchAppender<E> appender = new AbstractCloudWatchAppender<E>() {
+            @Override
+            protected CommonEventAttributes applyCommonEventAttributes(E event) {
+                if (event instanceof ILoggingEvent) {
+                    return new LoggingEventCommonEventAttributes((ILoggingEvent) event);
+                } else
+                    return new AccessEventCommonAttributes((IAccessEvent) event);
+            }
+        };
         appender.setName("awslogs-appender");
         appender.setRegion(region);
         appender.setLogGroup(logGroup);
@@ -127,7 +138,7 @@ public class CloudWatchAppenderFactory extends AbstractAppenderFactory<ILoggingE
 
         appender.setContext(context);
 
-        final LayoutWrappingEncoder<ILoggingEvent> layoutEncoder = new LayoutWrappingEncoder<>();
+        final LayoutWrappingEncoder<E> layoutEncoder = new LayoutWrappingEncoder<>();
         layoutEncoder.setLayout(buildLayout(context, layoutFactory));
         appender.setEncoder(layoutEncoder);
 
@@ -138,5 +149,43 @@ public class CloudWatchAppenderFactory extends AbstractAppenderFactory<ILoggingE
         return appender;
     }
 
+
+    private static class AccessEventCommonAttributes implements CommonEventAttributes {
+
+        private final IAccessEvent event;
+
+        AccessEventCommonAttributes(IAccessEvent event) {
+            this.event = event;
+        }
+
+        @Override
+        public String getThreadName() {
+            return event.getThreadName();
+        }
+
+        @Override
+        public long getTimeStamp() {
+            return event.getTimeStamp();
+        }
+    }
+
+    private static class LoggingEventCommonEventAttributes implements CommonEventAttributes {
+
+        private final ILoggingEvent event;
+
+        LoggingEventCommonEventAttributes(ILoggingEvent loggingEvent) {
+            this.event = loggingEvent;
+        }
+
+        @Override
+        public String getThreadName() {
+            return event.getThreadName();
+        }
+
+        @Override
+        public long getTimeStamp() {
+            return event.getTimeStamp();
+        }
+    }
 
 }
