@@ -143,7 +143,7 @@ public class CloudWatchAppenderFactory<E extends DeferredProcessingAware> extend
         appender.setEncoder(layoutEncoder);
 
         appender.addFilter(levelFilterFactory.build(threshold));
-        getFilterFactories().stream().forEach(f -> appender.addFilter(f.build()));
+        getFilterFactories().forEach(f -> appender.addFilter(f.build()));
         appender.start();
 
         return appender;
